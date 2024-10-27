@@ -1,11 +1,9 @@
 import numpy as np
 from scipy.optimize import minimize
 
-# when p3 p4 approaches to 0.5, it would be hard to find the right values for transition model parameters
-# understandable as the emission probabilities are not very informative, adding noise to the sequence
 
 class HeterogeneousHiddenMarkovModel:
-    def __init__(self, n_states=2, n_emits=2, decay_method="sigmoid", sigmoid_alpha=1, max_iter=1000, tolerance=1e-5, init_seed=None):
+    def __init__(self, n_states:int=2, n_emits:int=2, decay_method:str="sigmoid", sigmoid_alpha:float=1, max_iter:int=1000, conv_target:str="loglik", tolerance:float=1e-5, init_seed:int=None):
         '''
         initialize the model with the number of states, number of emissions, decay method, sigmoid alpha, max iterations, and tolerance
 
@@ -15,6 +13,7 @@ class HeterogeneousHiddenMarkovModel:
         - decay_method: Decay method to use ('sigmoid' or 'trunc_exp').
         - sigmoid_alpha: alpha parameter for sigmoid function
         - max_iter: maximum number of iterations for EM algorithm
+        - conv_target: either target for parameter or log-likelihood convergence ('param' or 'loglik') 
         - tolerance: tolerance for convergence
         - init_seed: seed for random number generator
         '''
@@ -25,9 +24,10 @@ class HeterogeneousHiddenMarkovModel:
         self.sigmoid_alpha = sigmoid_alpha
         self._set_decay_function()
         
-        self.max_iter = max_iter
-        self.tolerance= tolerance
-        self.init_rng = np.random.RandomState(seed=init_seed)       # self.init_rng.get_state()[1][0] to get the specified seed
+        self.max_iter      = max_iter
+        self.conv_target   = conv_target
+        self.tolerance     = tolerance
+        self.init_rng      = np.random.RandomState(seed=init_seed)  # self.init_rng.get_state()[1][0] to get the specified seed
         
         self.estimate_list = None                                   # List of estimated results for n_starts
         self.optim_est_idx = None                                   # Index of the estimate with the largest log-likelihood among n_starts
@@ -90,14 +90,14 @@ class HeterogeneousHiddenMarkovModel:
 
         return decay_factors, decay_factors_grad
     
-    def init_param(self, init_A1=None, init_B=None, init_w=None, normalize=False):
+    def init_param(self, init_A1=None, init_B=None, init_w=None, normalize:bool=True):
         """
         Initializes transition probabilities, emission probabilities, and coefficients of distance decay.
 
         Parameters:
         - init_A1: initial transition probabilities (distance-independent part), A2 can be computed from A1
-        - init_B: initial emission probabilities
-        - init_w: initial decay coefficients
+        - init_B:  initial emission probabilities
+        - init_w:  initial decay coefficients
         - normalize: whether to normalize the transition and emission probabilities to sum to 1
         if None, random values are used
         """
@@ -108,9 +108,9 @@ class HeterogeneousHiddenMarkovModel:
         
         if normalize:
             self.A1 /= (self.A1.sum(axis=1, keepdims=True) + np.finfo(float).eps)
-            self.B  /= (self.B.sum(axis=1,  keepdims=True) + np.finfo(float).eps)
             self.w[1]= -np.abs(self.w[1]) # Ensure slope is negative, so that decay factor decreases as distance increases
         self.A2  = np.eye(self.n_states) - self.A1
+        self.B  /= (self.B.sum(axis=1,  keepdims=True) + np.finfo(float).eps)
     
     def forward(self, y, P_initial):
         """
@@ -157,7 +157,7 @@ class HeterogeneousHiddenMarkovModel:
             #     beta[t, j] = np.sum(A_tp[j, :] * self.B[:, y[t+1]] * beta[t+1, :])
         return beta
     
-    def fit(self, observations, init_A1=None, init_B=None, init_w=None, n_starts=1, max_iter:int=None, tolerance:float=None, verbose=False, verbose_result=False):
+    def fit(self, observations, init_A1=None, init_B=None, init_w=None, n_starts:int=1, max_iter:int=None, conv_target:str="loglik", tolerance:float=None, verbose:bool=False, verbose_result:bool=False):
         """
         Fits the model parameters to a list of observation sequences.
         
@@ -183,8 +183,8 @@ class HeterogeneousHiddenMarkovModel:
         param_history = []          # List of parameter histories for n_starts, every element is a list of parameter values for each iteration
         
         for j in range(n_starts):
-            self.init_param(init_A1=init_A1, init_B=init_B, init_w=init_w)
-            n_iters, loglik, loglik_list, param_list = self.run_em(observations, max_iter=max_iter, tolerance=tolerance, verbose=verbose, verbose_result=verbose_result)
+            self.init_param(init_A1, init_B, init_w)
+            n_iters, loglik, loglik_list, param_list = self.run_em(observations, max_iter, conv_target, tolerance, verbose, verbose_result)
             if verbose:
                 is_converge = n_iters < self.max_iter-1
                 if is_converge:
@@ -210,7 +210,7 @@ class HeterogeneousHiddenMarkovModel:
             n_iters, loglik, optim_param = estimate_list[optim_idx]
             self._update_model(optim_param)
     
-    def run_em(self, observations, max_iter=None, tolerance=None, verbose=False, verbose_result=False):
+    def run_em(self, observations, max_iter=None, conv_target=None, tolerance=None, verbose=False, verbose_m=False, verbose_result=False):
         """
         Runs the EM algorithm for a given set of observations.
 
@@ -231,12 +231,14 @@ class HeterogeneousHiddenMarkovModel:
         - param_list: list of parameter values for each iteration
         """
         
-        self.max_iter = self.max_iter if max_iter is None else max_iter
-        self.tolerance= self.tolerance if tolerance is None else tolerance
+        self.max_iter   = self.max_iter if max_iter is None else max_iter
+        self.conv_target= self.conv_target if conv_target is None else conv_target
+        self.tolerance  = self.tolerance if tolerance is None else tolerance
         
         new_param = self._get_param()
         loglik_list = []
         param_list  = []
+        last_loglik = 1
         for i in range(self.max_iter):
             old_param = new_param
             loglik  = 0
@@ -268,14 +270,20 @@ class HeterogeneousHiddenMarkovModel:
                 param_list.append(old_param)
             
             # M-step: Maximization
-            self.m_step(xi_list, distances_list, B_num, verbose=verbose, verbose_result=verbose_result)
+            self.m_step(xi_list, distances_list, B_num, verbose_m=verbose_m, verbose_result=verbose_result)
 
             # Check for convergence
-            new_param = self._get_param()
-            delta_param = np.abs(old_param - new_param).max()
-            if delta_param < self.tolerance:
+            if self.conv_target == "loglik":
+                conv_score = np.abs(loglik - last_loglik)
+            else:
+                conv_score = np.abs(old_param - new_param).max()
+            
+            if conv_score < self.tolerance:
                 # last iteration is not recorded in the loglik_list and param_list
                 break
+            
+            new_param  = self._get_param()
+            last_loglik= loglik
         
         return i, loglik, loglik_list, param_list
     
@@ -307,7 +315,7 @@ class HeterogeneousHiddenMarkovModel:
         
         return gamma, xi
     
-    def m_step(self, xi_list, distances_list, B_num, verbose=True, verbose_result=False):
+    def m_step(self, xi_list, distances_list, B_num, verbose_m=True, verbose_result=False):
         """
         Performs the M-step of the EM algorithm.
 
@@ -315,7 +323,7 @@ class HeterogeneousHiddenMarkovModel:
         - xi_list: list of transition probabilities of shape (T, n_states, n_states); xi(t,i,j) = P(Q_t-1=i, Q_{t}=j | Y,params), first element is 0 matrix
         - distances_list: list of distance sequences of shape (T,) with first element as 0 (empty)
         - B_num: numerator of emission probabilities, shape (n_states, n_emits), unnormalized probabilities
-        - verbose: whether to print optimization progress
+        - verbose_m: whether to print optimization progress in m-step
         - verbose_result: whether to print optimization result for numeric optimization method
         """
 
@@ -337,7 +345,7 @@ class HeterogeneousHiddenMarkovModel:
 
         result = minimize(objective, init_guess, method='L-BFGS-B', bounds=((0, 1), (0, 1), (None, None), (None, 0)))
         
-        if verbose:
+        if verbose_m:
             print(f"m-step converge: {result.success}; current loss:{result.fun}; estimates: {np.round(result.x, 4)}")
         if verbose_result:
             print(result)
