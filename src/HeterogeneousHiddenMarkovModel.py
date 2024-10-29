@@ -3,17 +3,17 @@ from scipy.optimize import minimize
 
 
 class HeterogeneousHiddenMarkovModel:
-    def __init__(self, n_states:int=2, n_emits:int=2, decay_method:str="sigmoid", sigmoid_alpha:float=1, max_iter:int=1000, conv_target:str="loglik", tolerance:float=1e-5, init_seed:int=None):
+    def __init__(self, n_states:int=2, n_emits:int=2, decay_method:str="sigmoid", sigmoid_alpha:float=1, max_iter:int=1000, conv_target:str="params", tolerance:float=1e-5, init_seed:int=None):
         '''
         initialize the model with the number of states, number of emissions, decay method, sigmoid alpha, max iterations, and tolerance
 
         Parameters:
         - n_states: Number of states in the Markov chain.
-        - n_emits: Number of emissions in the Markov chain.
+        - n_emits:  Number of emissions in the Markov chain.
         - decay_method: Decay method to use ('sigmoid' or 'trunc_exp').
         - sigmoid_alpha: alpha parameter for sigmoid function
         - max_iter: maximum number of iterations for EM algorithm
-        - conv_target: either target for parameter or log-likelihood convergence ('param' or 'loglik') 
+        - conv_target: either target for parameters or log-likelihood convergence ('params' or 'loglik') 
         - tolerance: tolerance for convergence
         - init_seed: seed for random number generator
         '''
@@ -32,7 +32,7 @@ class HeterogeneousHiddenMarkovModel:
         self.estimate_list = None                                   # List of estimated results for n_starts
         self.optim_est_idx = None                                   # Index of the estimate with the largest log-likelihood among n_starts
         self.loglik_history= None                                   # List of log-likelihood histories for n_starts, every element is a list of log-likelihoods for each iteration
-        self.param_history = None                                   # List of parameter histories for n_starts, every element is a list of parameter values for each iteration
+        self.params_history= None                                   # List of parameter histories for n_starts, every element is a list of parameter values for each iteration
         
         self.A1 = np.zeros((n_states, n_states),dtype=np.float64)   # Placeholder for transition probabilities (distance-independent part)
         self.A2 = np.zeros((n_states, n_states),dtype=np.float64)   # Placeholder for transition probabilities (distance-dependent part)
@@ -90,7 +90,7 @@ class HeterogeneousHiddenMarkovModel:
 
         return decay_factors, decay_factors_grad
     
-    def init_param(self, init_A1=None, init_B=None, init_w=None, normalize:bool=True):
+    def init_params(self, init_A1=None, init_B=None, init_w=None, normalize:bool=True):
         """
         Initializes transition probabilities, emission probabilities, and coefficients of distance decay.
 
@@ -157,7 +157,7 @@ class HeterogeneousHiddenMarkovModel:
             #     beta[t, j] = np.sum(A_tp[j, :] * self.B[:, y[t+1]] * beta[t+1, :])
         return beta
     
-    def fit(self, observations, init_A1=None, init_B=None, init_w=None, n_starts:int=1, max_iter:int=None, conv_target:str="loglik", tolerance:float=None, verbose:bool=False, verbose_result:bool=False):
+    def fit(self, observations, init_A1=None, init_B=None, init_w=None, n_starts:int=1, max_iter:int=None, conv_target:str="params", tolerance:float=None, m_warm_start=True, verbose:bool=False, verbose_result:bool=False):
         """
         Fits the model parameters to a list of observation sequences.
         
@@ -180,11 +180,15 @@ class HeterogeneousHiddenMarkovModel:
         optim_loglik  = -np.inf     # The largest log-likelihood among n_starts
         optim_idx     = -1          # Index of the estimate with the largest log-likelihood among n_starts
         loglik_history= []          # List of log-likelihood histories for n_starts, every element is a list of log-likelihoods for each iteration
-        param_history = []          # List of parameter histories for n_starts, every element is a list of parameter values for each iteration
+        params_history= []          # List of parameters histories for n_starts, every element is a list of parameter values for each iteration
         
         for j in range(n_starts):
-            self.init_param(init_A1, init_B, init_w)
-            n_iters, loglik, loglik_list, param_list = self.run_em(observations, max_iter, conv_target, tolerance, verbose, verbose_result)
+            if n_starts > 1:
+                print(f"Random starts: {j}")
+            
+            self.init_params(init_A1, init_B, init_w)
+            n_iters, loglik, loglik_list, params_list = self.run_em(observations, max_iter=max_iter, conv_target=conv_target, tolerance=tolerance, m_warm_start=m_warm_start, verbose=verbose, verbose_result=verbose_result)
+            
             if verbose:
                 is_converge = n_iters < self.max_iter-1
                 if is_converge:
@@ -192,9 +196,9 @@ class HeterogeneousHiddenMarkovModel:
                 else:
                     print(f"Did not converge after {n_iters + 1} iterations; log-likelihood: {loglik}")
                 loglik_history.append(loglik_list)
-                param_history.append(param_list)
+                params_history.append(params_list)
             
-            estimate_list.append([n_iters, loglik, self._get_param()])
+            estimate_list.append([n_iters, loglik, self._get_params()])
             if optim_loglik < loglik:
                 optim_loglik = loglik
                 optim_idx = j
@@ -205,12 +209,12 @@ class HeterogeneousHiddenMarkovModel:
             self.optim_est_idx = optim_idx
             if verbose:
                 self.loglik_history = loglik_history
-                self.param_history  = param_history
+                self.params_history = params_history
             
             n_iters, loglik, optim_param = estimate_list[optim_idx]
             self._update_model(optim_param)
     
-    def run_em(self, observations, max_iter=None, conv_target=None, tolerance=None, verbose=False, verbose_m=False, verbose_result=False):
+    def run_em(self, observations, max_iter=None, conv_target=None, tolerance=None, verbose=False, m_warm_start=True, verbose_m=False, verbose_result=False):
         """
         Runs the EM algorithm for a given set of observations.
 
@@ -228,68 +232,73 @@ class HeterogeneousHiddenMarkovModel:
         - n_iters: number of iterations performed
         - loglik: final log-likelihood
         - loglik_list: list of log-likelihoods for each iteration
-        - param_list: list of parameter values for each iteration
+        - params_list: list of parameter values for each iteration
         """
         
         self.max_iter   = self.max_iter if max_iter is None else max_iter
         self.conv_target= self.conv_target if conv_target is None else conv_target
         self.tolerance  = self.tolerance if tolerance is None else tolerance
         
-        new_param = self._get_param()
+        old_loglik  = 0
+        old_params  = [np.inf]*len(self._get_params())
+        
         loglik_list = []
-        param_list  = []
-        last_loglik = 1
+        params_list = []
         for i in range(self.max_iter):
-            old_param = new_param
-            loglik  = 0
-            B_num   = np.zeros_like(self.B)
-            
-            # E-step: Expectation
-            xi_list = []
-            distances_list = []
-            for y, P_initial, distances in observations:
-                # for each observation sequence, compute the decay factor and transition tensor
-                decay_factors, _ = self._get_decay_factors(distances)
-                self._transition_tensor = self.A1 + self.A2 * decay_factors[:, None, None]
-                alpha = self.forward(y, P_initial)
-                beta = self.backward(y)
-                gamma, xi = self.e_step(y, alpha, beta)
+            # E-step: Expectation using current params
+            params  = self._get_params()
+            loglik, xi_list, distances_list, B_num = self.e_step(observations)
 
-                loglik += np.log(np.sum(alpha[-1]))
-                
-                # Accumulate updates for M-step
-                for t in range(len(y)):
-                    B_num[:, y[t]] += gamma[t, :]
-                
-                xi_list.append(xi)
-                distances_list.append(distances)
-            
             if verbose:
-                print(f'{self._color("#iterations")}: {i}; {self._color("log-likelihood", color="red")}: {loglik}; estimates: {np.round(old_param, 4)}')
+                print(
+                    f'{self._color("#iterations", color="red")}: {i}; '
+                    f'{self._color("log-likelihood", color="blue")}: {loglik:.6f}; '
+                    f'{self._color("estimates", color="green")}: [{", ".join([f"{p:.4f}" for p in params])}]'
+                )
                 loglik_list.append(loglik)
-                param_list.append(old_param)
+                params_list.append(params)
             
-            # M-step: Maximization
-            self.m_step(xi_list, distances_list, B_num, verbose_m=verbose_m, verbose_result=verbose_result)
-
-            # Check for convergence
-            if self.conv_target == "loglik":
-                conv_score = np.abs(loglik - last_loglik)
-            else:
-                conv_score = np.abs(old_param - new_param).max()
-            
+            # Check for convergence from last step
+            conv_score = np.abs(params - old_params).max() if self.conv_target == "params" else np.abs(loglik - old_loglik)
             if conv_score < self.tolerance:
-                # last iteration is not recorded in the loglik_list and param_list
                 break
             
-            new_param  = self._get_param()
-            last_loglik= loglik
-        
-        return i, loglik, loglik_list, param_list
+            # M-step: Maximization if not converge
+            self.m_step(xi_list, distances_list, B_num, m_warm_start, verbose_m, verbose_result)
+            old_loglik = loglik
+            old_params = params
+            
+        return i, loglik, loglik_list, params_list
     
-    def e_step(self, y, alpha, beta):
+    def e_step(self, observations):
+        loglik  = 0
+        B_num   = np.zeros_like(self.B)
+        
+        # E-step: Expectation
+        xi_list = []
+        distances_list = []
+        for y, P_initial, distances in observations:
+            # for each observation sequence, compute the decay factor and transition tensor
+            decay_factors, _ = self._get_decay_factors(distances)
+            self._transition_tensor = self.A1 + self.A2 * decay_factors[:, None, None]
+            alpha = self.forward(y, P_initial)
+            beta = self.backward(y)
+            gamma, xi = self.e_step_1seq(y, alpha, beta)
+
+            loglik += np.log(np.sum(alpha[-1]) + np.finfo(float).eps)
+            
+            # Accumulate updates for M-step
+            for t in range(len(y)):
+                B_num[:, y[t]] += gamma[t, :]
+            
+            xi_list.append(xi)
+            distances_list.append(distances)
+        
+        return loglik, xi_list, distances_list, B_num
+
+    def e_step_1seq(self, y, alpha, beta):
         """
-        Performs the E-step of the EM algorithm with distance-dependent transitions.
+        Performs the E-step of the EM algorithm with distance-dependent transitions for a single sequence.
 
         Parameters:
         - y: observation sequence of shape (T,)
@@ -315,7 +324,7 @@ class HeterogeneousHiddenMarkovModel:
         
         return gamma, xi
     
-    def m_step(self, xi_list, distances_list, B_num, verbose_m=True, verbose_result=False):
+    def m_step(self, xi_list, distances_list, B_num, m_warm_start=True, verbose_m=True, verbose_result=False):
         """
         Performs the M-step of the EM algorithm.
 
@@ -323,6 +332,7 @@ class HeterogeneousHiddenMarkovModel:
         - xi_list: list of transition probabilities of shape (T, n_states, n_states); xi(t,i,j) = P(Q_t-1=i, Q_{t}=j | Y,params), first element is 0 matrix
         - distances_list: list of distance sequences of shape (T,) with first element as 0 (empty)
         - B_num: numerator of emission probabilities, shape (n_states, n_emits), unnormalized probabilities
+        - m_warm_start: whether to set previous parameter estimates as inital guess (warm start) or start randomly
         - verbose_m: whether to print optimization progress in m-step
         - verbose_result: whether to print optimization result for numeric optimization method
         """
@@ -332,16 +342,19 @@ class HeterogeneousHiddenMarkovModel:
         
         def objective(trans_param):
             self._update_trans_model(trans_param)
-            loss = self._neglog_likelihood(xi_list, distances_list)
+            loss = self._trans_neglog_lik(xi_list, distances_list)
             if verbose_result: # not a local variable, access from outer scope
                 optim_loss_history.append(loss)
             return loss
         
         optim_loss_history = [] # clean before collect
-        init_prob = np.random.random(size=2) 
-        init_w    = np.random.normal(size=2) 
-        init_w[1] = -np.abs(init_w[1])  # prior knowledge: increase dist -> less dependency, w_1 is negative
-        init_guess= np.concatenate([init_prob, init_w])
+        if m_warm_start:
+            init_guess= self._get_params()[0:4]
+        else:
+            init_prob = np.random.random(size=2) 
+            init_w    = np.random.normal(size=2) 
+            init_w[1] = -np.abs(init_w[1])  # prior knowledge: increase dist -> less dependency, w_1 is negative
+            init_guess= np.concatenate([init_prob, init_w])
 
         result = minimize(objective, init_guess, method='L-BFGS-B', bounds=((0, 1), (0, 1), (None, None), (None, 0)))
         
@@ -387,9 +400,9 @@ class HeterogeneousHiddenMarkovModel:
         
         self.B[:]  = [[1 - emits_param[0], emits_param[0]], [emits_param[1], 1 - emits_param[1]]]
     
-    def _neglog_likelihood(self, xi_list, distances_list):
+    def _trans_neglog_lik(self, xi_list, distances_list):
         '''
-        Compute the negative log-likelihood of the model parameters given the observations, which will be the loss to minimize.
+        Compute the negative log-likelihood of the transition model parameters given the observations, which will be the loss to minimize.
         
         Parameters:
         - xi_list: list of transition probabilities of shape (T_r, n_states, n_states); xi(t_r,i,j) = P(Q_t-1=i, Q_{t}=j | Y, params), first element is 0 matrix
@@ -397,7 +410,7 @@ class HeterogeneousHiddenMarkovModel:
         T_r is the length of observation sequences in read r
 
         Returns:
-        - total_loglik: negative log-likelihood of the model parameters given the observations
+        - total_loglik: negative log-likelihood of the transition model parameters given the observations
         '''
 
         total_loglik = 0
@@ -460,10 +473,11 @@ class HeterogeneousHiddenMarkovModel:
 
         return color_dict[color] + text_str + "\033[0m"
     
-    def _get_param(self):
+    def _get_params(self):
         '''
         Return the model parameters as a 1-D array.(p1, p2, w0, w1, p3, p4)
         '''
         return np.array([self.A1[0,1], self.A1[1,0],
                          self.w[0], self.w[1],
                          self.B[0,1], self.B[1,0]])
+

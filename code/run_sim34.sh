@@ -15,6 +15,13 @@ module load anaconda3
 conda activate py38
 
 
+#################### FUNCTION ####################
+function log_stamp() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Job $JOB_ID.$SGE_TASK_ID on node $(hostname -s): $1"
+    echo " "
+}
+
+
 #################### CODE SECTION START  ####################
 echo "[Path/Name]: $SGE_O_WORKDIR/$JOB_NAME"
 log_stamp "started"
@@ -22,8 +29,8 @@ log_stamp "started"
 
 # assign parameters to each job in the array
 working_path=$HOME/iproject/Site-site_dependency/
-output_path=$working_path/data/simu_heterhmm/sim12/
-ja=$working_path/jobs12
+output_path=$working_path/data/heterhmm/sim34/
+ja=$working_path/jobs34
 
 
 # read the parameters from the job file
@@ -32,18 +39,11 @@ line=${PARMS[0]}
 IFS=',' read -r p1 p2 w0 w1 p3 p4 n prefix <<< "$line"
 
 echo "[TASK_LABEL]: $line"
-python3 $working_path/code/simu_heterhmm.py -p1 $p1 -p2 $p2 -w0 $w0 -w1 $w1 -p3 $p3 -p4 $p4 -n $n -o $output_path -p $prefix
+python3 $working_path/code/sim_heterhmm.py -p1 $p1 -p2 $p2 -w0 $w0 -w1 $w1 -p3 $p3 -p4 $p4 -n $n -o $output_path -p $prefix
 
 
 #################### CODE SECTION END  ####################
 log_stamp "finished"
-
-
-#################### FUNCTION ####################
-function log_stamp() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Job $JOB_ID.$SGE_TASK_ID on node $(hostname -s): $1"
-    echo " "
-}
 
 
 #################### EXAMPLE ####################
