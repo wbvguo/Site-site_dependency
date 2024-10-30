@@ -3,7 +3,7 @@
 #$ -cwd                         # Execute the job from the current directory
 #$ -j y                         # Error stream is merged with the standard output
 #$ -l h_data=8G,h_rt=24:00:00   # 8G of memory and 24 hour of runtime
-#$ -t 1-8:1                     # job array from 1 to n_jobs with step 1
+#$ -t 1-20:1                    # job array from 1 to n_jobs with step 1
 #$ -r n                         # job is NOT rerunable  
 #$ -o joblog.$JOB_ID.$TASK_ID   # Log file, remove $TASK_ID for non-array jobs
 

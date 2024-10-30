@@ -183,7 +183,7 @@ class HeterogeneousHiddenMarkovModel:
         params_history= []          # List of parameters histories for n_starts, every element is a list of parameter values for each iteration
         
         for j in range(n_starts):
-            if n_starts > 1:
+            if verbose and (n_starts > 1):
                 print(f"Random starts: {j}")
             
             self.init_params(init_A1, init_B, init_w)

@@ -107,7 +107,7 @@ class HomogeneousHiddenMarkovModel:
         optim_idx     = -1      # Index of the estimate with the largest log-likelihood among n_starts
         
         for j in range(n_starts):
-            if n_starts > 1:
+            if verbose and (n_starts > 1):
                 print(f"Random starts: {j}")
             self.init_params(init_A=init_A, init_B=init_B)
             n_iters, loglik, loglik_list, params_list = self.run_em(observations, max_iter=max_iter, tolerance=tolerance, verbose=verbose)
