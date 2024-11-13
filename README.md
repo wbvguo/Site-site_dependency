@@ -1,2 +1,3 @@
-# Site-site_dependency
-Modelling site-site dependency in DNA methylation data using Heterogeneous Hidden Markov Model and Recurrent Neural Network
+#  Introduction
+Modelling site-site dependency in DNA methylation sequencing data using Heterogeneous Hidden Markov Model and Recurrent Neural Network
+
