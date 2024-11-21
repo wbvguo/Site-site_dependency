@@ -8,25 +8,7 @@ import sys
 from pathlib import Path
 sys.path.append(f'{Path.home()}/iproject/Site-site_dependency/src/')
 from HeterogeneousHiddenMarkovModel import HeterogeneousHiddenMarkovModel
-
-
-def generate_observations(n, P_initial_list, distances_list, p1, p2, w0, w1, p3, p4):
-    '''
-    generate n obervations, each observation consists (y, distances, P_initial)
-    '''
-    model = HeterogeneousHiddenMarkovModel()
-    model.A1 = np.array([[1-p1, p1], [p2, 1-p2]])
-    model.A2 = np.array([[p1, -p1], [-p2, p2]])
-    model.B  = np.array([[1-p3, p3], [p4, 1-p4]])
-    model.w  = [w0, w1]
-    
-    observations = []
-    for i in range(n):
-        P_initial = P_initial_list[i]
-        distances = distances_list[i]
-        y, z = model.predict(P_initial, distances)
-        observations.append((y, P_initial, distances))
-    return observations
+from SyntheticDataGenerator import generate_sequences_heterhmm
 
 
 def main(p1, p2, w0, w1, p3, p4, n, outdir, prefix, seed=42):
@@ -34,7 +16,7 @@ def main(p1, p2, w0, w1, p3, p4, n, outdir, prefix, seed=42):
 
     distances_list = [np.hstack((np.array([0]), random_state.randint(1, 200, size=np.random.randint(5, 10)))) for _ in range(n)]
     P_initial_list = [random_state.dirichlet(alpha = [0.5,0.5]) for _ in range(n)]  # Generate initial probabilities
-    observations   = generate_observations(n, P_initial_list, distances_list, p1, p2, w0, w1, p3, p4)
+    observations   = generate_sequences_heterhmm(n, P_initial_list, distances_list, p1, p2, w0, w1, p3, p4)
     
     true_params  = [p1, p2, w0, w1, p3, p4]
     print(true_params)
