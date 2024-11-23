@@ -1,3 +1,6 @@
+# derived from https://github.com/NuttyLogic/BSBolt/blob/master/bsbolt/CallMethylation/CallVector.py 
+# with heavy modificaiton and reimplementation to suit the needs of this project
+
 import numpy as np
 import pickle
 import pysam

@@ -119,9 +119,9 @@ def generate_synthetic_data(sample_size, max_seq_len, method='bidirectional', se
     - seed (int): Seed for reproducibility.
 
     Returns:
-    - features (list of ndarray): List of feature arrays, each with shape (seq_len, 3),
-      containing scores, distances, and positions.
     - targets (list of ndarray): List of binary target sequences, each with length seq_len.
+    - features (list of ndarray): List of feature arrays, each with shape (seq_len, 2),
+      containing scores, distances.
     """
 
     random_state = np.random.RandomState(seed=seed)  # For reproducibility
@@ -132,10 +132,7 @@ def generate_synthetic_data(sample_size, max_seq_len, method='bidirectional', se
         seq_len = random_state.randint(5, max_seq_len)
         scores  = np.array([random_state.dirichlet(alpha=[0.5, 0.5])[0] for _ in range(seq_len)])
         distances = np.concatenate(([0], random_state.randint(1, 200, seq_len - 1)))
-        positions = np.arange(seq_len)
-
-        # Combine scores, distances into a feature array
-        feature_seq = np.column_stack((scores, distances, positions))  # Shape: (seq_len, 3)
+        feature_seq = np.column_stack((scores, distances))  # Shape: (seq_len, 2)
 
         # Generate the target sequence based on the specified method
         if method == 'bidirectional':
@@ -145,8 +142,8 @@ def generate_synthetic_data(sample_size, max_seq_len, method='bidirectional', se
         else:
             raise ValueError("Invalid method. Choose either 'bidirectional' or 'bernoulli'.")
 
-        features.append(feature_seq)
         targets.append(target_seq)
+        features.append(feature_seq)
 
-    return features, targets
+    return targets, features
 
