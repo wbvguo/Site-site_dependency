@@ -4,6 +4,7 @@ Modelling site-site dependency in DNA methylation sequencing data using Heteroge
 ## Overview
 
 
+
 ## Folder description
 - `analysis`: Jupyter notebook for each chapter, file name starts with `chap${N}_*`
 - `code`: scripts for data simulation and sequencing reads data processing
@@ -15,9 +16,10 @@ Modelling site-site dependency in DNA methylation sequencing data using Heteroge
     `HeterogeneousMarkovChain.py` | <span style="color:cyan;">model</span> | Heterogeneous Markov Chain | 
     `HomogeneousHiddenMarkovModel.py`| <span style="color:cyan;">model</span> | Homogeneous HMM | 
     `ManyToManyBiLSTM.py` | <span style="color:cyan;">model</span> | Many-to-many bidirecitonal LSTM network |
-    `SyntheticDataGenerator` | <span style="color:orange;">data</span> | synthetic data simulation using 3 different data generation mechanism |
-    `CallMethVector.py` | <span style="color:orange;">data</span> | real data preprocessing, converting sequencing reads to methylation state vectors | 
-    `UtilityFunction.py` | <span style="color:pink;">function</span> | utility functions to calculate the site-site dependency for adjacent sites |
+    `SyntheticDataGenerator` | <span style="color:orange;">data</span> | simulate synthetic data using 3 different generative model |
+    `CallMethVector.py` | <span style="color:orange;">data</span> | convert bisulfite sequencing reads to methylation state vectors| 
+    `CpGMethPlotter.py` | <span style="color:pink;">function</span> | visualize methylation pattern on sequencing reads
+    `UtilityFunction.py` | <span style="color:pink;">function</span> | calculate the site-site dependency metrics |
 
 
 ## Code usage example
