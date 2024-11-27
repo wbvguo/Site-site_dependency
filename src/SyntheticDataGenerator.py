@@ -110,7 +110,7 @@ def generate_sequences_bidirectional(scores, distances, n_seq, w0=5, w1=-0.05, n
     return sequences
 
 
-def generate_synthetic_data(sample_size, max_seq_len, method='bidirectional', seed=42):
+def generate_synthetic_data(sample_size, max_seq_len, method='bidirectional', w0=5, w1=-0.05, n_iter=100, seed=42):
     """
     Generate synthetic feature and target sequences.
     
@@ -138,7 +138,7 @@ def generate_synthetic_data(sample_size, max_seq_len, method='bidirectional', se
 
         # Generate the target sequence based on the specified method
         if method == 'bidirectional':
-            target_seq = generate_sequences_bidirectional(scores, distances, 1)[0]
+            target_seq = generate_sequences_bidirectional(scores, distances, 1, w0=w0, w1=w1, n_iter=n_iter)[0]
         elif method == 'bernoulli':
             target_seq = generate_sequences_bernoulli(scores, 1)[0]
         else:
