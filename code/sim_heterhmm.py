@@ -7,7 +7,7 @@ from scipy.optimize import minimize
 import sys
 from pathlib import Path
 sys.path.append(f'{Path.home()}/iproject/Site-site_dependency/src/')
-from HeterogeneousHiddenMarkovModel import HeterogeneousHiddenMarkovModel
+from HeterogeneousHMM import HeterogeneousHMM
 from SyntheticDataGenerator import generate_sequences_heterhmm
 
 
@@ -21,7 +21,7 @@ def main(p1, p2, w0, w1, p3, p4, n, outdir, prefix, seed=42):
     true_params  = [p1, p2, w0, w1, p3, p4]
     print(true_params)
 
-    heterhmm = HeterogeneousHiddenMarkovModel(init_seed=42)
+    heterhmm = HeterogeneousHMM(init_seed=42)
     heterhmm.fit(observations,verbose=True,n_starts=20)
     print(heterhmm._get_params())
 

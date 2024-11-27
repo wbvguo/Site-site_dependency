@@ -1,7 +1,7 @@
 import numpy as np
 
-class HomogeneousHiddenMarkovModel:
-    def __init__(self, n_states:int=2, n_emits:int=2, max_iter:int=1000, conv_target:str="params", tolerance:float=1e-5, init_seed:int=None):
+class HomogeneousHMM:
+    def __init__(self, n_states:int=2, n_emits:int=2, max_iter:int=1000, conv_target:str="params", tolerance:float=1e-5, init_seed:int=None, pred_seed:int=None):
         """
         Initialize the Homogeneous Hidden Markov Model with discrete emissions.
 
@@ -11,6 +11,7 @@ class HomogeneousHiddenMarkovModel:
         - max_iter: maximum number of iterations
         - tolerance: convergence criterion
         - init_seed: random seed for initialization
+        - pred_seed: random seed for prediction
         """
         
         self.n_states   = n_states
@@ -20,6 +21,7 @@ class HomogeneousHiddenMarkovModel:
         self.conv_target= conv_target
         self.tolerance  = tolerance
         self.init_rng   = np.random.RandomState(seed=init_seed)
+        self.pred_rng   = np.random.RandomState(seed=pred_seed)
         
         self.estimate_list = None               # List of estimated parameters from multiple starts
         self.optim_est_idx = None               # Index of the optimal estimate in the list
@@ -275,31 +277,34 @@ class HomogeneousHiddenMarkovModel:
         self.B = B_num / (B_den[:, None] + np.finfo(float).eps)
         self.B /= (self.B.sum(axis=1, keepdims=True) + np.finfo(float).eps)
         
-    def predict(self, P_initial, length):
+    def predict(self, P_initial, length, pred_seed=None):
         """
         Generates a sequence of observations based on the model parameters.
 
         Parameters:
         - P_initial: initial state probabilities, shape (n_states,) with sum equal to 1
         - length: length of the sequence to generate
+        - pred_seed: random seed for prediction
 
         Returns:
         - y: the observed sequence, shape (length,)
         - z: the state sequence, shape (length,)
         """
-        
+
+        self.pred_rng = self.pred_rng if pred_seed is None else np.random.RandomState(seed=pred_seed)
+
         y = np.zeros(length, dtype=int)
         z = np.zeros(length, dtype=int)
         
         # Initial state is chosen based on P_initial, and generate first observation
-        z[0] = np.random.choice(self.n_states, p=P_initial)
-        y[0] = np.random.choice(self.n_emits, p=self.B[z[0], :])
+        z[0] = self.pred_rng.choice(self.n_states, p=P_initial)
+        y[0] = self.pred_rng.choice(self.n_emits, p=self.B[z[0], :])
         
         # Generate the rest of the sequence
         for t in range(1, length):
             # Transition to next state based on A, generate observation based on B
-            z[t] = np.random.choice(self.n_states, p=self.A[z[t-1], :])
-            y[t] = np.random.choice(self.n_emits, p=self.B[z[t], :])
+            z[t] = self.pred_rng.choice(self.n_states, p=self.A[z[t-1], :])
+            y[t] = self.pred_rng.choice(self.n_emits, p=self.B[z[t], :])
         
         return y, z
     

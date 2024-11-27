@@ -1,5 +1,6 @@
 import numpy as np
-from scipy.stats import binned_statistic
+import matplotlib.pyplot as plt
+from scipy.stats import binned_statistic, pearsonr, spearmanr
 
 
 def sort_sequence_matrix(seq_mat, rows, col_index=0):
@@ -182,4 +183,100 @@ def compute_binned_similarity(targets, features, lengths, bin_size=10, bin_edge=
     bin_stds, _, _ = binned_statistic(all_distances, all_similarities, statistic='std', bins=bin_edges)
     
     return bin_means, bin_stds, bin_edges
+
+
+def plot_binned_similarity(datasets, title=None, xlab="Distance between Sites", ylab="Probability of Same State",
+                           color = 'steelblue', plot_size=(12, 6), dpi=300, save_path=None):
+    """
+    Generates scatter plots with linear fit for binned mean comparisons, with shaded confidence intervals.
+
+    Parameters:
+    - datasets (list): List of tuples (bin_means, bin_stds, bin_edges, title) for each subplot.
+    - title (str): Title for the entire figure.
+    - xlab (str): Label for the x-axis.
+    - ylab (str): Label for the y-axis.
+    - plot_size (tuple): Size of the plot (default: (12, 6)).
+    - dpi (int): DPI for the plot (default: 300).
+    - save_path (str): Path to save the plot (default: None).
+    """
+    fig, axes = plt.subplots(1, len(datasets), figsize=plot_size, dpi=dpi, sharey=True)
+    axes = [axes] if len(datasets) == 1 else axes
+    titles = title if isinstance(title, list) and len(title) == len(datasets) else [""] * len(datasets)
+    
+    for ix, (bin_means, bin_stds, bin_edges) in enumerate(datasets):
+        ax = axes[ix]
+        x = bin_edges[:-1] + np.diff(bin_edges) / 2  # Midpoints of bin edges
+        y = bin_means
+        y_err = bin_stds
+
+        # Calculate statistics for annotation
+        correlation, p_value = pearsonr(x[~np.isnan(y)], y[~np.isnan(y)])
+        slope, intercept = np.polyfit(x[~np.isnan(y)], y[~np.isnan(y)], 1)
+        regression_line = slope * x + intercept
+        p_value_str = f"{p_value:.2e}" if p_value < 0.01 else f"{p_value:.2f}"
+
+        # Scatter plot with shaded confidence interval and regression line
+        ax.plot(x, y, 'o', color=color, label="Binned mean")
+        ax.plot(x, y, color=color, linewidth=1.5, linestyle="-")  # Line connecting bin means
+        ax.fill_between(x, y - y_err, y + y_err, color=color, alpha=0.2, label="Mean ± SD")
+        ax.plot(x, regression_line, color="red", linewidth=2, label="Linear fit")
+
+        # Plot customization
+        ax.set_xlabel(xlab, weight="medium")
+        ax.set_title(titles[ix], weight="medium")
+        ax.grid(True, linestyle="--", linewidth=0.5, color="gray", alpha=0.7)
+
+        # Annotation for correlation and regression details
+        annotations = (f"$y = {slope:.4f}x + {intercept:.4f}$\n"
+                       f"$r = {correlation:.2f}$, $p$ = {p_value_str}")
+        ax.annotate(annotations, xy=(0.98, 0.98), 
+                    xycoords="axes fraction", 
+                    color="black",
+                    verticalalignment="top", horizontalalignment="right",
+                    bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white"))
+        
+    axes[0].set_ylabel(ylab, weight="medium")
+
+    # Final layout adjustments
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    if save_path:
+        plt.savefig(save_path, bbox_inches="tight")
+    plt.show()
+
+
+def bootstrap_correlation(x, y, n_bootstrap=1000, confidence=95):
+    """
+    Calculate the correlation, bootstrapped standard deviation, and confidence interval.
+    
+    Parameters:
+    - x (array-like): First variable.
+    - y (array-like): Second variable.
+    - n_bootstrap (int): Number of bootstrap samples. Default is 1000.
+    - confidence (float): Confidence level for the interval. Default is 95.
+    
+    Returns: dict: Dictionary with correlation, std, lower CI, and upper CI.
+    """
+    # Calculate correlation
+    corr, _ = pearsonr(x, y)
+    
+    # Bootstrap correlations
+    boot_corrs = []
+    for _ in range(n_bootstrap):
+        indices = np.random.choice(len(x), size=len(x), replace=True)
+        x_sample = x[indices]
+        y_sample = y[indices]
+        boot_corr, _ = pearsonr(x_sample, y_sample)
+        boot_corrs.append(boot_corr)
+    
+    # Calculate standard deviation and confidence interval
+    boot_std = np.std(boot_corrs)
+    lower_ci = np.percentile(boot_corrs, (100 - confidence) / 2)
+    upper_ci = np.percentile(boot_corrs, 100 - (100 - confidence) / 2)
+    
+    return {
+        "correlation": corr,
+        "boot_std": boot_std,
+        f"CI_lower": lower_ci,
+        f"CI_upper": upper_ci
+    }
 

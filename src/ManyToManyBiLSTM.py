@@ -9,9 +9,9 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_se
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-class BiLSTMModel(nn.Module):
+class ManyToManyBiLSTM(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_layers, output_dim, dropout=0.3):
-        super(BiLSTMModel, self).__init__()
+        super(ManyToManyBiLSTM, self).__init__()
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         
@@ -113,7 +113,7 @@ def train_model(model, train_loader, test_loader, criterion, optimizer, num_epoc
         print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}')
         train_loss_list.append(train_loss)
         test_loss_list.append(test_loss)
-    return train_loss_list, test_loss_list, model
+    return model, train_loss_list, test_loss_list
 
 
 class CustomDataset(Dataset):

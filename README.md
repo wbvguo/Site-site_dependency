@@ -12,9 +12,9 @@ Modelling site-site dependency in DNA methylation sequencing data using Heteroge
 - `src` : source code including 
     | FileName | Type | Description |
     | ---- | ---- | ---- |
-    `HeterogenousHiddenMarkovModel.py` | <span style="color:cyan;">model</span> | Heterogeneous HMM |
-    `HeterogeneousMarkovChain.py` | <span style="color:cyan;">model</span> | Heterogeneous Markov Chain | 
-    `HomogeneousHiddenMarkovModel.py`| <span style="color:cyan;">model</span> | Homogeneous HMM | 
+    `HeterogenousHMM.py` | <span style="color:cyan;">model</span> | Heterogeneous Hidden Markov Model |
+    `HeterogeneousMC.py` | <span style="color:cyan;">model</span> | Heterogeneous Markov Chain | 
+    `HomogeneousHMM.py`| <span style="color:cyan;">model</span> | Homogeneous Hidden Markov Model | 
     `ManyToManyBiLSTM.py` | <span style="color:cyan;">model</span> | Many-to-many bidirecitonal LSTM network |
     `SyntheticDataGenerator.py` | <span style="color:orange;">data</span> | simulate synthetic data using 3 different generative model |
     `CallMethVector.py` | <span style="color:orange;">data</span> | convert bisulfite sequencing reads to methylation state vectors| 
@@ -35,7 +35,7 @@ git clone https://github.com/wbvguo/Site-site_dependency.git
 import sys
 from pathlib import Path
 sys.path.append(f'{Path.home()}/Site-site_dependency/src/') 
-from SyntheticDataGenerator import generate_sequences_heterhmm, generate
+from SyntheticDataGenerator import generate_sequences_heterhmm
 
 
 # generate via indepedent bernoulli model
@@ -51,8 +51,8 @@ from SyntheticDataGenerator import generate_sequences_heterhmm, generate
 
 ### 2. train heterogeneous/homogeneous HMM
 ```python
-from HeterogeneousHiddenMarkovModel import HeterogeneousHiddenMarkovModel
-from HomogeneousHiddenMarkovModel import HomogeneousHiddenMarkovModel
+from HeterogeneousHMM import HeterogeneousHMM
+from HomogeneousHMM import HomogeneousHMM
 
 
 # train a heterogeneous HMM

@@ -1,8 +1,9 @@
 import numpy as np
-from HeterogeneousHiddenMarkovModel import HeterogeneousHiddenMarkovModel
+from HeterogeneousHMM import HeterogeneousHMM
 
 
-def generate_sequences_heterhmm(n, P_initial_list, distances_list, p1, p2, w0, w1, p3, p4, decay_method='sigmoid'):
+def generate_sequences_heterhmm(n, P_initial_list, distances_list, p1, p2, w0, w1, p3, p4, 
+                                decay_method='sigmoid', init_seed=None, pred_seed=None):
     """
     Generate synthetic observations using a Heterogeneous Hidden Markov Model (HMM).
     
@@ -12,11 +13,12 @@ def generate_sequences_heterhmm(n, P_initial_list, distances_list, p1, p2, w0, w
     - distances_list (list of ndarray): List of distances between adjacent sites for each observation.
     - p1, p2, w0, w1, p3, p4 (float): Transition, decay, and emission parameters for the model.
     - decay_method (str): Method for calculating transition probability decay (e.g., 'sigmoid').
+    - init_seed, pred_seed (int): Seeds for reproducibility.
 
     Returns:
     - observations (list of tuples): List of generated observations (y, P_initial, distances)
     """
-    model = HeterogeneousHiddenMarkovModel(decay_method=decay_method)
+    model = HeterogeneousHMM(decay_method=decay_method, init_seed=init_seed, pred_seed=pred_seed)
     model.A1 = np.array([[1-p1, p1], [p2, 1-p2]])
     model.A2 = np.array([[p1, -p1], [-p2, p2]])
     model.B  = np.array([[1-p3, p3], [p4, 1-p4]])

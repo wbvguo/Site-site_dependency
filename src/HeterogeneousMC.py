@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 from tqdm import tqdm # For progress bar
 
-class HeterogeneousMarkovChain:
+class HeterogeneousMC:
     def __init__(self, n_states:int=2, decay_method:str="sigmoid", sigmoid_alpha:float=1.0):
         """
         Initialize the Heterogeneous Markov Chain model.

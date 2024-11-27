@@ -2,8 +2,9 @@ import numpy as np
 from scipy.optimize import minimize
 
 
-class HeterogeneousHiddenMarkovModel:
-    def __init__(self, n_states:int=2, n_emits:int=2, decay_method:str="sigmoid", sigmoid_alpha:float=1, max_iter:int=1000, conv_target:str="params", tolerance:float=1e-5, init_seed:int=None):
+class HeterogeneousHMM:
+    def __init__(self, n_states:int=2, n_emits:int=2, decay_method:str="sigmoid", sigmoid_alpha:float=1, 
+                 max_iter:int=1000, conv_target:str="params", tolerance:float=1e-5, init_seed:int=None, pred_seed:int=None):
         '''
         initialize the model with the number of states, number of emissions, decay method, sigmoid alpha, max iterations, and tolerance
 
@@ -28,7 +29,8 @@ class HeterogeneousHiddenMarkovModel:
         self.conv_target   = conv_target
         self.tolerance     = tolerance
         self.init_rng      = np.random.RandomState(seed=init_seed)  # self.init_rng.get_state()[1][0] to get the specified seed
-        
+        self.pred_rng      = np.random.RandomState(seed=pred_seed)  # self.pred_rng.get_state()[1][0] to get the specified seed
+
         self.estimate_list = None                                   # List of estimated results for n_starts
         self.optim_est_idx = None                                   # Index of the estimate with the largest log-likelihood among n_starts
         self.loglik_history= None                                   # List of log-likelihood histories for n_starts, every element is a list of log-likelihoods for each iteration
@@ -157,7 +159,8 @@ class HeterogeneousHiddenMarkovModel:
             #     beta[t, j] = np.sum(A_tp[j, :] * self.B[:, y[t+1]] * beta[t+1, :])
         return beta
     
-    def fit(self, observations, init_A1=None, init_B=None, init_w=None, n_starts:int=1, max_iter:int=None, conv_target:str="params", tolerance:float=None, m_warm_start=True, verbose:bool=False, verbose_result:bool=False):
+    def fit(self, observations, init_A1=None, init_B=None, init_w=None, n_starts:int=1, max_iter:int=None, conv_target:str="params", tolerance:float=None, 
+            m_warm_start=True, verbose:bool=False, verbose_result:bool=False):
         """
         Fits the model parameters to a list of observation sequences.
         
@@ -187,7 +190,8 @@ class HeterogeneousHiddenMarkovModel:
                 print(f"Random starts: {j}")
             
             self.init_params(init_A1, init_B, init_w)
-            n_iters, loglik, loglik_list, params_list = self.run_em(observations, max_iter=max_iter, conv_target=conv_target, tolerance=tolerance, m_warm_start=m_warm_start, verbose=verbose, verbose_result=verbose_result)
+            n_iters, loglik, loglik_list, params_list = self.run_em(observations, max_iter=max_iter, conv_target=conv_target, tolerance=tolerance, 
+                                                                    m_warm_start=m_warm_start, verbose=verbose, verbose_result=verbose_result)
             
             if verbose:
                 is_converge = n_iters < self.max_iter-1
@@ -437,8 +441,8 @@ class HeterogeneousHiddenMarkovModel:
         - y: observed sequence
         - z: state sequence
         """
-        
-        self.pred_rng = np.random.RandomState(seed=pred_seed)       # self.pred_rng.get_state()[1][0] to get the specified seed
+
+        self.pred_rng = self.pred_rng if pred_seed is None else np.random.RandomState(seed=pred_seed)
 
         T = len(distances)
         z = np.zeros(T, dtype=int)
