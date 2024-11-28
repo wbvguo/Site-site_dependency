@@ -32,10 +32,11 @@ git clone https://github.com/wbvguo/Site-site_dependency.git
 
 ### 1. generate synthetic data
 ```python
+import numpy as np
 import sys
 from pathlib import Path
 sys.path.append(f'{Path.home()}/Site-site_dependency/src/') 
-from SyntheticDataGenerator import generate_sequences_heterhmm, generate_synthetic_data
+from SyntheticDataGenerator import generate_synthetic_data, generate_sequences_heterhmm
 
 
 # generate via indepedent bernoulli model
@@ -107,6 +108,8 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 from functools import partial
 criterion = partial(custom_loss_function, alpha=1, beta=1)
 
+
+# train
 num_epochs = 50
 model, train_loss_list, test_loss_list = train_model(model, train_loader, test_loader, criterion, optimizer, num_epochs=num_epochs)
 ```

@@ -202,6 +202,7 @@ def plot_binned_similarity(datasets, title=None, xlab="Distance between Sites", 
     fig, axes = plt.subplots(1, len(datasets), figsize=plot_size, dpi=dpi, sharey=True)
     axes = [axes] if len(datasets) == 1 else axes
     titles = title if isinstance(title, list) and len(title) == len(datasets) else [""] * len(datasets)
+    colors = color if isinstance(color, list) and len(color) == len(datasets) else [color] * len(datasets)
     
     for ix, (bin_means, bin_stds, bin_edges) in enumerate(datasets):
         ax = axes[ix]
@@ -216,9 +217,9 @@ def plot_binned_similarity(datasets, title=None, xlab="Distance between Sites", 
         p_value_str = f"{p_value:.2e}" if p_value < 0.01 else f"{p_value:.2f}"
 
         # Scatter plot with shaded confidence interval and regression line
-        ax.plot(x, y, 'o', color=color, label="Binned mean")
-        ax.plot(x, y, color=color, linewidth=1.5, linestyle="-")  # Line connecting bin means
-        ax.fill_between(x, y - y_err, y + y_err, color=color, alpha=0.2, label="Mean ± SD")
+        ax.plot(x, y, 'o', color=colors[ix], label="Binned mean")
+        ax.plot(x, y, color=colors[ix], linewidth=1.5, linestyle="-")  # Line connecting bin means
+        ax.fill_between(x, y - y_err, y + y_err, color=colors[ix], alpha=0.2, label="Mean ± SD")
         ax.plot(x, regression_line, color="red", linewidth=2, label="Linear fit")
 
         # Plot customization
