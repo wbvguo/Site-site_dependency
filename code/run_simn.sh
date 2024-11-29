@@ -29,9 +29,9 @@ log_stamp "started"
 
 # assign parameters to each job in the array
 working_path=$HOME/iproject/Site-site_dependency/
-output_path=$working_path/data/heterhmm/simn/
-ja=$working_path/jobsn
-
+data_path=$working_path/data/heterhmm/
+output_path=$data_path/simn/
+ja=$data_path/jobsn
 
 # read the parameters from the job file
 PARMS=($(awk "NR==$SGE_TASK_ID" $ja))
