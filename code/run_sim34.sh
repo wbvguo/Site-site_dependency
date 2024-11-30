@@ -29,8 +29,9 @@ log_stamp "started"
 
 # assign parameters to each job in the array
 working_path=$HOME/iproject/Site-site_dependency/
-output_path=$working_path/data/heterhmm/sim34/
-ja=$working_path/jobs34
+data_path=$working_path/data/heterhmm/
+output_path=$data_path/sim34/
+ja=$data_path/jobs34
 
 
 # read the parameters from the job file
