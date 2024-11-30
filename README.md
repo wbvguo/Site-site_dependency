@@ -50,7 +50,7 @@ targets, features = generate_synthetic_data(n_seq=10000, max_seq_len=10, method=
 # generate via heterogeneous/homogeneous HMM
 p1, p2, p3, p4, w0, w1, n = [0.3, 0.4, 0.1, 0.2, 5, -0.05, 100]
 random_state   = np.random.RandomState(seed=2024)
-P_initial_list = [random_state.dirichlet(alpha = [0.5,0.5]) for _ in range(n)]
+P_initial_list = [random_state.dirichlet(alpha=[0.5,0.5]) for _ in range(n)]
 distances_list = [np.r_[0, random_state.randint(1, 200, random_state.randint(5, 10))] for _ in range(n)]
 observations   = generate_sequences_heterhmm(n, P_initial_list, distances_list, p1, p2, w0, w1, p3, p4)
 ```
@@ -64,14 +64,14 @@ from HomogeneousHMM import HomogeneousHMM
 
 # train a heterogeneous HMM
 heterhmm = HeterogeneousHMM(init_seed=42)
-heterhmm.fit(observations,verbose=True, n_starts=20)
+heterhmm.fit(observations, verbose=True, n_starts=20)
 
 
 # train a homogeneous HMM
 observations_hmm = [(obs[0], obs[1]) for obs in observations]
 
-homohmm = HomogeneousHMM(init_seed=42, tolerance = 1e-5)
-homohmm.fit(observations_hmm,verbose=True, n_starts=20)
+homohmm = HomogeneousHMM(init_seed=42)
+homohmm.fit(observations_hmm, verbose=True, n_starts=20)
 ```
 
 
@@ -84,22 +84,24 @@ from torch.utils.data import DataLoader, random_split
 from ManyToManyBiLSTM import ManyToManyBiLSTM, CustomDataset, custom_loss_function, train_model
 
 # Model Parameters
-input_dim = 2
+input_dim  = 2
 hidden_dim = 8
 num_layers = 2
 output_dim = 1
-dropout = 0.1
+dropout    = 0.1
 batch_size = 64
 learning_rate = 0.0005
 
-model = ManyToManyBiLSTM(input_dim, hidden_dim, num_layers, output_dim, dropout).to(device)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model  = ManyToManyBiLSTM(input_dim, hidden_dim, num_layers, output_dim, dropout).to(device)
 
 
 # Data and DataLoader Setup
 dataset = CustomDataset(inputs=features, targets=targets)
 train_size = int(0.8 * len(dataset))  # 80-20 split
-train_dataset, test_dataset = random_split(dataset, [train_size, len(dataset) - train_size])
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch)
+test_size  = len(dataset) - train_size
+train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+train_loader= DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_batch)
 
 
