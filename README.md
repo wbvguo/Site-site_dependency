@@ -33,6 +33,8 @@ git clone https://github.com/wbvguo/Site-site_dependency.git
 ### 1. generate synthetic data
 ```python
 import numpy as np
+
+# add the python module to Path
 import sys
 from pathlib import Path
 sys.path.append(f'{Path.home()}/Site-site_dependency/src/') 
