@@ -2,8 +2,6 @@ import argparse
 import numpy as np
 import pickle
 
-from scipy.optimize import minimize
-
 import sys
 from pathlib import Path
 sys.path.append(f'{Path.home()}/iproject/Site-site_dependency/src/')

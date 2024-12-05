@@ -29,10 +29,9 @@ log_stamp "started"
 
 # assign parameters to each job in the array
 working_path=$HOME/iproject/Site-site_dependency/
-data_path=$working_path/data/heterhmm/
-output_path=$data_path/sim12/
-ja=$data_path/jobs12
-
+simu_path=$working_path/simu/sim_0.5_0.5_0.1_0.1/
+output_path=$simu_path/sim12/
+ja=$simu_path/jobs12
 
 # read the parameters from the job file
 PARMS=($(awk "NR==$SGE_TASK_ID" $ja))
@@ -49,4 +48,3 @@ log_stamp "finished"
 
 #################### EXAMPLE ####################
 # qsub qjob.sh
-
