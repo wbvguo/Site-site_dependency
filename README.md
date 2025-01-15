@@ -1,8 +1,8 @@
-#  Introduction
+# Introduction
 Modelling site-site dependency in DNA methylation sequencing data using Heterogeneous Hidden Markov Model and Recurrent Neural Network. 
 
 ## Overview
-![meth_model](./docs/plot/meth_models.png)
+![meth_model](./docs/meth_models.png)
 
 
 ## Folder description
@@ -24,7 +24,7 @@ Modelling site-site dependency in DNA methylation sequencing data using Heteroge
 
 ## Code usage example
 ### 0. clone the repository
-Assume home directory as the working directory
+e.g. use the home directory as the working directory
 ```shell
 cd ~
 git clone https://github.com/wbvguo/Site-site_dependency.git
@@ -120,3 +120,20 @@ model, train_loss_list, test_loss_list = train_model(model, train_loader, test_l
 
 
 
+# Citation
+The manuscript is avialble from [Google scholar](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C5&q=Modeling+Site-Site+Dependency+in+DNA+Methylation+Sequencing+data). 
+
+- APA
+    ```
+    Guo, W. (2024). Modeling Site-Site Dependency in DNA Methylation Sequencing data (Master's thesis, University of California, Los Angeles).
+    ```
+
+- biblatex
+    ```
+    @mastersthesis{guo2024modeling,
+    title={Modeling Site-Site Dependency in DNA Methylation Sequencing data},
+    author={Guo, Wenbin},
+    year={2024},
+    school={University of California, Los Angeles}
+    }
+    ```
